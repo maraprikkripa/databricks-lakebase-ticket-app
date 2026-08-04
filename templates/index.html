@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Support Tickets</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; color: #222; }
+        h1 { margin-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+        .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }
+        .status-open { background: #ffe9b3; }
+        .status-in_progress { background: #b3d9ff; }
+        .status-resolved { background: #c6f0c2; }
+        form.create { margin-top: 30px; padding: 16px; border: 1px solid #ddd; border-radius: 6px; }
+        input[type=text] { width: 60%; padding: 6px; }
+        button { padding: 6px 14px; cursor: pointer; }
+        a { color: #2563eb; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Support Tickets</h1>
+
+    <table>
+        <thead>
+            <tr><th>Title</th><th>Status</th><th>Created By</th><th>Created At</th></tr>
+        </thead>
+        <tbody>
+            {% for t in tickets %}
+            <tr>
+                <td><a href="/tickets/{{ t.ticket_id }}">{{ t.title }}</a></td>
+                <td><span class="status status-{{ t.status }}">{{ t.status }}</span></td>
+                <td>{{ t.created_by }}</td>
+                <td>{{ t.created_at }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">No tickets yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <form class="create" method="post" action="/tickets">
+        <h3>Create a new ticket</h3>
+        <input type="text" name="title" placeholder="Ticket title" required>
+        <button type="submit">Create</button>
+    </form>
+</body>
+</html>
