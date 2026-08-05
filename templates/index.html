@@ -69,6 +69,11 @@
 <p class="table-hint">Showing {{ tickets|length }} ticket{{ 's' if tickets|length != 1 else '' }} - scroll within the table to see more.</p>
 
 <h1 id="analytics" class="analytics-heading">Analytics</h1>
+{% if current_view != 'all' or current_priority != 'all' or current_category != 'all' or current_environment != 'all' %}
+<p class="description">Charts below reflect the current filter (same as the ticket list above).</p>
+{% else %}
+<p class="description">Charts below reflect all tickets.</p>
+{% endif %}
 
 <div class="stats-row stats-row-3">
     <div class="stat-card">

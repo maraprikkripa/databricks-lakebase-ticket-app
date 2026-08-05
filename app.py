@@ -120,18 +120,24 @@ def get_status_counts():
     return counts
 
 
-def get_priority_counts():
-    """Return ticket counts per priority, for the sidebar/right panel."""
-    rows = lakebase.run_query("SELECT priority, COUNT(*) AS n FROM tickets GROUP BY priority")
+def get_priority_counts(where_sql="", params=None):
+    """Return ticket counts per priority. Pass where_sql/params to scope to the current filter."""
+    rows = lakebase.run_query(
+        f"SELECT priority, COUNT(*) AS n FROM tickets {where_sql} GROUP BY priority",
+        tuple(params) if params else None,
+    )
     counts = {p: 0 for p in VALID_PRIORITIES}
     for r in rows:
         counts[r["priority"]] = r["n"]
     return counts
 
 
-def get_category_counts():
-    """Return ticket counts per category, for the sidebar and analytics chart."""
-    rows = lakebase.run_query("SELECT category, COUNT(*) AS n FROM tickets GROUP BY category")
+def get_category_counts(where_sql="", params=None):
+    """Return ticket counts per category. Pass where_sql/params to scope to the current filter."""
+    rows = lakebase.run_query(
+        f"SELECT category, COUNT(*) AS n FROM tickets {where_sql} GROUP BY category",
+        tuple(params) if params else None,
+    )
     counts = {c: 0 for c in VALID_CATEGORIES}
     for r in rows:
         counts[r["category"]] = r["n"]
@@ -178,13 +184,20 @@ def get_top_category():
     return top.replace("_", " ").title()
 
 
-def get_tickets_per_day(days=14):
-    """Daily ticket counts for the last N days, as (labels, values) for a line chart."""
+def get_tickets_per_day(days=14, extra_where_clauses=None, params=None):
+    """Daily ticket counts for the last N days, as (labels, values) for a line chart.
+
+    extra_where_clauses/params let the current status/priority/category/environment
+    filter narrow the chart to match whatever the ticket list is currently showing.
+    """
     # `days` is always an internal constant, never user input - safe to inline.
+    conditions = [f"created_at >= now() - interval '{days} days'"] + (extra_where_clauses or [])
+    where_sql = "WHERE " + " AND ".join(conditions)
     rows = lakebase.run_query(
         f"SELECT date_trunc('day', created_at) AS day, COUNT(*) AS n "
-        f"FROM tickets WHERE created_at >= now() - interval '{days} days' "
-        f"GROUP BY day ORDER BY day"
+        f"FROM tickets {where_sql} "
+        f"GROUP BY day ORDER BY day",
+        tuple(params) if params else None,
     )
     counts_by_day = {r["day"].date(): r["n"] for r in rows}
 
@@ -255,8 +268,14 @@ def index():
         tuple(params) if params else None,
     )
 
+    # Sidebar/stat-card counts stay global (common_context) so navigation is predictable.
+    # The charts below, though, should reflect whatever filter is currently applied.
     ctx = common_context()
-    chart_labels, chart_values = get_tickets_per_day()
+    filtered_category_counts = get_category_counts(where_sql, params)
+    filtered_priority_counts = get_priority_counts(where_sql, params)
+    chart_labels, chart_values = get_tickets_per_day(
+        days=14, extra_where_clauses=where_clauses, params=params
+    )
 
     return render_template(
         "index.html",
@@ -268,9 +287,9 @@ def index():
         chart_labels=chart_labels,
         chart_values=chart_values,
         category_labels=[c.replace("_", " ").title() for c in VALID_CATEGORIES],
-        category_values=[ctx["category_counts"][c] for c in VALID_CATEGORIES],
+        category_values=[filtered_category_counts[c] for c in VALID_CATEGORIES],
         priority_labels=[p.capitalize() for p in VALID_PRIORITIES],
-        priority_values=[ctx["priority_counts"][p] for p in VALID_PRIORITIES],
+        priority_values=[filtered_priority_counts[p] for p in VALID_PRIORITIES],
         **ctx,
     )
 
