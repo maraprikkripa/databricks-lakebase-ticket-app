@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}New Ticket - Support Desk{% endblock %}
+{% block content %}
+
+<a class="back" href="{{ url_for('index') }}">&larr; All tickets</a>
+<h1>Create a new ticket</h1>
+
+<div class="card">
+    <form method="post" action="{{ url_for('create_ticket') }}">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" placeholder="Short summary" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4" placeholder="Describe the issue..."></textarea>
+
+        <label for="email">Your email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+        <button type="submit">Create ticket</button>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,57 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ ticket.title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <a class="back" href="/">&larr; All tickets</a>
-    <h1>{{ ticket.title }}</h1>
-    {% if ticket.description %}
-    <p class="description">{{ ticket.description }}</p>
-    {% endif %}
-    <p class="description">
-        Created by {{ ticket.created_by }} on {{ ticket.created_at }}
-    </p>
+{% extends "base.html" %}
+{% block title %}{{ ticket.title }} - Support Desk{% endblock %}
+{% block content %}
 
-    <div class="status-row">
-        <span class="status">
-            <span class="dot dot-{{ ticket.status }}"></span>{{ ticket.status }}
-        </span>
-        <form method="post" action="/tickets/{{ ticket.ticket_id }}/status">
-            <select name="status">
-                {% for s in statuses %}
-                <option value="{{ s }}" {% if s == ticket.status %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">Update status</button>
-        </form>
-    </div>
+<a class="back" href="{{ url_for('index') }}">&larr; All tickets</a>
+<h1>{{ ticket.title }}</h1>
+{% if ticket.description %}
+<p class="description">{{ ticket.description }}</p>
+{% endif %}
+<p class="description">Created by {{ ticket.created_by }} on {{ ticket.created_at }}</p>
 
-    <h3>Messages</h3>
-    {% for m in messages %}
-    <div class="message">
-        <div class="msg-meta">{{ m.author }} &middot; {{ m.created_at }}</div>
-        <div>{{ m.message_text }}</div>
-    </div>
-    {% else %}
-    <p class="description">No messages yet.</p>
-    {% endfor %}
+<div class="status-row">
+    <span class="status"><span class="dot dot-{{ ticket.status }}"></span>{{ ticket.status }}</span>
+    <form method="post" action="{{ url_for('update_status', ticket_id=ticket.ticket_id) }}">
+        <select name="status">
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if s == ticket.status %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Update status</button>
+    </form>
+</div>
 
-    <div class="card">
-        <h3>Add a message</h3>
-        <form method="post" action="/tickets/{{ ticket.ticket_id }}/messages">
-            <textarea name="message_text" rows="3" placeholder="Type your message..." required></textarea>
-            <button type="submit">Add message</button>
-        </form>
-    </div>
+<h3>Messages</h3>
+{% for m in messages %}
+<div class="message">
+    <div class="msg-meta">{{ m.author }} &middot; {{ m.created_at }}</div>
+    <div>{{ m.message_text }}</div>
+</div>
+{% else %}
+<p class="description">No messages yet.</p>
+{% endfor %}
 
-    <div class="danger-zone">
-        <form method="post" action="/tickets/{{ ticket.ticket_id }}/delete"
-              onsubmit="return confirm('Delete this ticket and all its messages? This cannot be undone.');">
-            <button type="submit" class="btn-danger">Delete ticket</button>
-        </form>
-    </div>
-</body>
-</html>
+<div class="card">
+    <h3>Add a message</h3>
+    <form method="post" action="{{ url_for('add_message', ticket_id=ticket.ticket_id) }}">
+        <textarea name="message_text" rows="3" placeholder="Type your message..." required></textarea>
+        <button type="submit">Add message</button>
+    </form>
+</div>
+
+<div class="danger-zone">
+    <form method="post" action="{{ url_for('delete_ticket', ticket_id=ticket.ticket_id) }}"
+          onsubmit="return confirm('Delete this ticket and all its messages? This cannot be undone.');">
+        <button type="submit" class="btn-danger">Delete ticket</button>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Support Desk{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <span class="brand">Support Desk</span>
+    </header>
+    <div class="layout">
+        <nav class="sidebar">
+            <a class="new-ticket-btn" href="{{ url_for('new_ticket_form') }}">+ New ticket</a>
+            <div class="nav-section">
+                <a href="{{ url_for('index') }}" class="nav-link {% if current_view == 'all' %}active{% endif %}">
+                    <span>All tickets</span>
+                    <span class="count">{{ counts.total }}</span>
+                </a>
+                {% for s in statuses %}
+                <a href="{{ url_for('index', status=s) }}" class="nav-link {% if current_view == s %}active{% endif %}">
+                    <span><span class="dot dot-{{ s }}"></span>{{ s.replace('_', ' ') | capitalize }}</span>
+                    <span class="count">{{ counts[s] }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </nav>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

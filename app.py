@@ -77,14 +77,53 @@ def healthz():
     return jsonify({"status": "ok"})
 
 
+def get_status_counts():
+    """Return ticket counts per status plus a total, for the sidebar/stat cards."""
+    rows = lakebase.run_query("SELECT status, COUNT(*) AS n FROM tickets GROUP BY status")
+    counts = {s: 0 for s in VALID_STATUSES}
+    for r in rows:
+        counts[r["status"]] = r["n"]
+    counts["total"] = sum(counts.values())
+    return counts
+
+
 @app.route("/")
 def index():
-    """List all tickets."""
-    tickets = lakebase.run_query(
-        "SELECT ticket_id, title, status, created_by, created_at "
-        "FROM tickets ORDER BY created_at DESC"
+    """List tickets, optionally filtered to a single status."""
+    status_filter = request.args.get("status")
+    if status_filter not in VALID_STATUSES:
+        status_filter = None
+
+    if status_filter:
+        tickets = lakebase.run_query(
+            "SELECT ticket_id, title, status, created_by, created_at "
+            "FROM tickets WHERE status = %s ORDER BY created_at DESC",
+            (status_filter,),
+        )
+    else:
+        tickets = lakebase.run_query(
+            "SELECT ticket_id, title, status, created_by, created_at "
+            "FROM tickets ORDER BY created_at DESC"
+        )
+
+    return render_template(
+        "index.html",
+        tickets=tickets,
+        statuses=VALID_STATUSES,
+        counts=get_status_counts(),
+        current_view=status_filter or "all",
     )
-    return render_template("index.html", tickets=tickets, statuses=VALID_STATUSES)
+
+
+@app.route("/tickets/new")
+def new_ticket_form():
+    """Dedicated create-ticket page."""
+    return render_template(
+        "new_ticket.html",
+        statuses=VALID_STATUSES,
+        counts=get_status_counts(),
+        current_view=None,
+    )
 
 
 @app.route("/tickets/<int:ticket_id>")
@@ -104,13 +143,18 @@ def view_ticket(ticket_id):
         (ticket_id,),
     )
     return render_template(
-        "ticket.html", ticket=tickets[0], messages=messages, statuses=VALID_STATUSES
+        "ticket.html",
+        ticket=tickets[0],
+        messages=messages,
+        statuses=VALID_STATUSES,
+        counts=get_status_counts(),
+        current_view=None,
     )
 
 
 @app.route("/tickets", methods=["POST"])
 def create_ticket():
-    """Create a new ticket."""
+    """Create a new ticket and go straight to its detail page."""
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
     email = request.form.get("email", "").strip()
@@ -120,12 +164,16 @@ def create_ticket():
     if not email:
         return "Email is required", 400
 
-    lakebase.run_write(
-        "INSERT INTO tickets (title, description, status, created_by) "
-        "VALUES (%s, %s, %s, %s)",
-        (title, description or None, "open", email),
-    )
-    return redirect(url_for("index"))
+    with lakebase.get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tickets (title, description, status, created_by) "
+                "VALUES (%s, %s, %s, %s) RETURNING ticket_id",
+                (title, description or None, "open", email),
+            )
+            new_id = cur.fetchone()["ticket_id"]
+            conn.commit()
+    return redirect(url_for("view_ticket", ticket_id=new_id))
 
 
 @app.route("/tickets/<int:ticket_id>/delete", methods=["POST"])
