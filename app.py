@@ -255,6 +255,9 @@ def index():
         tuple(params) if params else None,
     )
 
+    ctx = common_context()
+    chart_labels, chart_values = get_tickets_per_day()
+
     return render_template(
         "index.html",
         tickets=tickets,
@@ -262,7 +265,13 @@ def index():
         current_priority=priority_filter or "all",
         current_category=category_filter or "all",
         current_environment=environment_filter or "all",
-        **common_context(),
+        chart_labels=chart_labels,
+        chart_values=chart_values,
+        category_labels=[c.replace("_", " ").title() for c in VALID_CATEGORIES],
+        category_values=[ctx["category_counts"][c] for c in VALID_CATEGORIES],
+        priority_labels=[p.capitalize() for p in VALID_PRIORITIES],
+        priority_values=[ctx["priority_counts"][p] for p in VALID_PRIORITIES],
+        **ctx,
     )
 
 
@@ -276,27 +285,6 @@ def new_ticket_form():
         current_category=None,
         current_environment=None,
         **common_context(),
-    )
-
-
-@app.route("/analytics")
-def analytics():
-    """Charts: tickets over time, by category, by priority, avg resolution time."""
-    chart_labels, chart_values = get_tickets_per_day()
-    ctx = common_context()
-    return render_template(
-        "analytics.html",
-        current_view=None,
-        current_priority=None,
-        current_category=None,
-        current_environment=None,
-        chart_labels=chart_labels,
-        chart_values=chart_values,
-        category_labels=[c.replace("_", " ").title() for c in VALID_CATEGORIES],
-        category_values=[ctx["category_counts"][c] for c in VALID_CATEGORIES],
-        priority_labels=[p.capitalize() for p in VALID_PRIORITIES],
-        priority_values=[ctx["priority_counts"][p] for p in VALID_PRIORITIES],
-        **ctx,
     )
 
 
