@@ -38,9 +38,13 @@ def ensure_tables():
         )
         """
     )
-    # Added after the initial schema - IF NOT EXISTS keeps this safe to re-run
-    # against a table that was created before this column existed.
-    lakebase.run_write("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS description TEXT")
+    # Added after the initial schema. The connecting role may not own a table
+    # created earlier via a different identity (e.g. the SQL editor) - in that
+    # case ALTER fails with a permission error; skip rather than crash the app.
+    try:
+        lakebase.run_write("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS description TEXT")
+    except Exception:
+        logger.warning("Could not add description column - continuing without it", exc_info=True)
     lakebase.run_write(
         """
         CREATE TABLE IF NOT EXISTS ticket_messages (
