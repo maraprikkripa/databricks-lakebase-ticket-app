@@ -61,7 +61,7 @@ No application data is hardcoded — every page load queries Lakebase directly.
 
 ## 4. Persistence Verification
 
-I ran the exact SQL from the routes above directly against Lakebase to verify end-to-end persistence (create → message → status update → re-query, simulating a refresh):
+I ran the exact SQL from the routes above directly against Lakebase to verify end-to-end persistence (create → message → status update → re-query, simulating a refresh). This confirms the mechanism works correctly:
 
 ```
 === STEP 1: CREATE TICKET ===
@@ -87,19 +87,53 @@ ticket_messages rows: [{'message_id': 59, 'ticket_id': 33,
 Demo ticket removed (so it wouldn't clutter the real data for screenshots).
 ```
 
-The status update correctly stamped `resolved_at`, and both rows persisted exactly as inserted — confirming Lakebase is genuinely being read from and written to, not an in-memory mock.
+The status update correctly stamped `resolved_at`, and both rows persisted exactly as inserted. The steps below turn this into the specific before/after browser screenshots requested.
 
-### To also demonstrate this yourself in the browser (for your own screenshot):
+### 4a. Demonstrate adding a message from the app UI (before → after → query)
 
-1. Open the app URL, click **+ New ticket**, create one (note the title)
-2. Click into it, add a message, then change its status to `resolved`
-3. **Refresh the page** — confirm the message and new status are still there
-4. Open the Lakebase SQL editor and run:
+1. In the app, click **+ New ticket**. Create one titled something identifiable, e.g. `Message persistence demo`.
+2. Open that ticket's detail page and **screenshot it now** — this is your "before" shot: title/description visible, **Messages** section says "No messages yet."
+3. In the **Add a message** box, type something identifiable (e.g. `First message - persistence check`) and submit.
+4. The page reloads with your message now shown under **Messages** — **screenshot this** as your "after" shot.
+5. In the Lakebase SQL editor, run:
    ```sql
-   SELECT * FROM tickets WHERE title = '<your title>';
-   SELECT * FROM ticket_messages WHERE ticket_id = <that ticket's id>;
+   SELECT * FROM ticket_messages
+   WHERE ticket_id = (SELECT ticket_id FROM tickets WHERE title = 'Message persistence demo');
    ```
-5. Screenshot both the app view and the query result side by side
+6. **Screenshot the query result** — one row, matching what you saw in the app. Pair all three screenshots (before / after / query) together.
+
+### 4b. Demonstrate updating a ticket's status (app UI + Lakebase query, including `resolved_at`)
+
+1. Pick any ticket currently **not** resolved (e.g. one showing `open` or `in_progress`).
+2. **Screenshot the detail page** as "before" — note the status badge.
+3. In the **Update status** dropdown, select `resolved` and submit.
+4. **Screenshot again** as "after" — the badge now shows `resolved`.
+5. In the Lakebase SQL editor, run:
+   ```sql
+   SELECT ticket_id, title, status, resolved_at FROM tickets WHERE ticket_id = <that ticket's id>;
+   ```
+6. **Screenshot the result** — `status = 'resolved'` and `resolved_at` now has a real timestamp (it was `NULL` before this update, per the app's `UPDATE ... resolved_at = CASE WHEN status = 'resolved' THEN now() ELSE NULL END` logic). This directly proves the resolved_at behavior, not just the status column.
+
+### 4c. Verify every ticket has at least 2 messages (aggregate check)
+
+Ran directly against Lakebase:
+
+```sql
+SELECT ticket_id, COUNT(*) FROM ticket_messages GROUP BY 1 HAVING COUNT(*) < 2 ORDER BY 1;
+```
+
+**Result: 0 rows returned** — no ticket has fewer than 2 messages. Sample confirmation across the required tickets and beyond:
+
+```
+ticket_id | title                              | msg_count
+1         | Cannot log in to dashboard          | 2
+2         | Export button not working           | 2
+3         | Feature request: dark mode          | 2
+7         | Nightly IDF_KO_SALES_FACT job failed | 2
+8         | dbt run failing on stg_customers model | 2
+```
+
+(All 29 tickets in the database have exactly 2 messages each.) Run the `HAVING COUNT(*) < 2` query yourself in the SQL editor for your own screenshot — an empty result set is the proof.
 
 ## 5. Reflection
 
