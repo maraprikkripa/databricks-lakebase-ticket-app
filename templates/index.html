@@ -45,6 +45,7 @@
 </p>
 {% endif %}
 
+<div class="table-scroll">
 <table>
     <thead>
         <tr><th>Title</th><th>Status</th><th>Priority</th><th>Category</th><th>Created By</th><th>Created At</th></tr>
@@ -64,6 +65,8 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+<p class="table-hint">Showing {{ tickets|length }} ticket{{ 's' if tickets|length != 1 else '' }} - scroll within the table to see more.</p>
 
 <h1 id="analytics" class="analytics-heading">Analytics</h1>
 
