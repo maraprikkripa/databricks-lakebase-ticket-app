@@ -23,6 +23,7 @@ app = Flask(__name__)
 _w = WorkspaceClient()
 
 VALID_STATUSES = ("open", "in_progress", "resolved")
+VALID_PRIORITIES = ("low", "medium", "high")
 
 
 def ensure_tables():
@@ -45,6 +46,12 @@ def ensure_tables():
         lakebase.run_write("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS description TEXT")
     except Exception:
         logger.warning("Could not add description column - continuing without it", exc_info=True)
+    try:
+        lakebase.run_write(
+            "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'medium'"
+        )
+    except Exception:
+        logger.warning("Could not add priority column - continuing without it", exc_info=True)
     lakebase.run_write(
         """
         CREATE TABLE IF NOT EXISTS ticket_messages (
@@ -87,31 +94,71 @@ def get_status_counts():
     return counts
 
 
+def get_priority_counts():
+    """Return ticket counts per priority, for the sidebar/right panel."""
+    rows = lakebase.run_query("SELECT priority, COUNT(*) AS n FROM tickets GROUP BY priority")
+    counts = {p: 0 for p in VALID_PRIORITIES}
+    for r in rows:
+        counts[r["priority"]] = r["n"]
+    return counts
+
+
+def get_recent_activity(limit=5):
+    """Return the most recent messages across all tickets, for the right panel."""
+    return lakebase.run_query(
+        "SELECT tm.message_id, tm.message_text, tm.author, tm.created_at, "
+        "       t.ticket_id, t.title "
+        "FROM ticket_messages tm "
+        "JOIN tickets t ON t.ticket_id = tm.ticket_id "
+        "ORDER BY tm.created_at DESC LIMIT %s",
+        (limit,),
+    )
+
+
+def common_context():
+    """Shared context every page needs for the sidebar and right panel."""
+    return {
+        "statuses": VALID_STATUSES,
+        "priorities": VALID_PRIORITIES,
+        "counts": get_status_counts(),
+        "priority_counts": get_priority_counts(),
+        "recent_activity": get_recent_activity(),
+    }
+
+
 @app.route("/")
 def index():
-    """List tickets, optionally filtered to a single status."""
+    """List tickets, optionally filtered by status and/or priority."""
     status_filter = request.args.get("status")
     if status_filter not in VALID_STATUSES:
         status_filter = None
 
+    priority_filter = request.args.get("priority")
+    if priority_filter not in VALID_PRIORITIES:
+        priority_filter = None
+
+    where_clauses = []
+    params = []
     if status_filter:
-        tickets = lakebase.run_query(
-            "SELECT ticket_id, title, status, created_by, created_at "
-            "FROM tickets WHERE status = %s ORDER BY created_at DESC",
-            (status_filter,),
-        )
-    else:
-        tickets = lakebase.run_query(
-            "SELECT ticket_id, title, status, created_by, created_at "
-            "FROM tickets ORDER BY created_at DESC"
-        )
+        where_clauses.append("status = %s")
+        params.append(status_filter)
+    if priority_filter:
+        where_clauses.append("priority = %s")
+        params.append(priority_filter)
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+    tickets = lakebase.run_query(
+        f"SELECT ticket_id, title, status, priority, created_by, created_at "
+        f"FROM tickets {where_sql} ORDER BY created_at DESC",
+        tuple(params) if params else None,
+    )
 
     return render_template(
         "index.html",
         tickets=tickets,
-        statuses=VALID_STATUSES,
-        counts=get_status_counts(),
         current_view=status_filter or "all",
+        current_priority=priority_filter or "all",
+        **common_context(),
     )
 
 
@@ -120,9 +167,9 @@ def new_ticket_form():
     """Dedicated create-ticket page."""
     return render_template(
         "new_ticket.html",
-        statuses=VALID_STATUSES,
-        counts=get_status_counts(),
         current_view=None,
+        current_priority=None,
+        **common_context(),
     )
 
 
@@ -130,7 +177,7 @@ def new_ticket_form():
 def view_ticket(ticket_id):
     """View a single ticket and its messages."""
     tickets = lakebase.run_query(
-        "SELECT ticket_id, title, description, status, created_by, created_at "
+        "SELECT ticket_id, title, description, status, priority, created_by, created_at "
         "FROM tickets WHERE ticket_id = %s",
         (ticket_id,),
     )
@@ -146,9 +193,9 @@ def view_ticket(ticket_id):
         "ticket.html",
         ticket=tickets[0],
         messages=messages,
-        statuses=VALID_STATUSES,
-        counts=get_status_counts(),
         current_view=None,
+        current_priority=None,
+        **common_context(),
     )
 
 
@@ -158,6 +205,9 @@ def create_ticket():
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
     email = request.form.get("email", "").strip()
+    priority = request.form.get("priority", "medium")
+    if priority not in VALID_PRIORITIES:
+        priority = "medium"
 
     if not title:
         return "Title is required", 400
@@ -167,9 +217,9 @@ def create_ticket():
     with lakebase.get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO tickets (title, description, status, created_by) "
-                "VALUES (%s, %s, %s, %s) RETURNING ticket_id",
-                (title, description or None, "open", email),
+                "INSERT INTO tickets (title, description, status, priority, created_by) "
+                "VALUES (%s, %s, %s, %s, %s) RETURNING ticket_id",
+                (title, description or None, "open", priority, email),
             )
             new_id = cur.fetchone()["ticket_id"]
             conn.commit()
@@ -212,6 +262,20 @@ def update_status(ticket_id):
     lakebase.run_write(
         "UPDATE tickets SET status = %s WHERE ticket_id = %s",
         (status, ticket_id),
+    )
+    return redirect(url_for("view_ticket", ticket_id=ticket_id))
+
+
+@app.route("/tickets/<int:ticket_id>/priority", methods=["POST"])
+def update_priority(ticket_id):
+    """Update a ticket's priority."""
+    priority = request.form.get("priority", "")
+    if priority not in VALID_PRIORITIES:
+        return f"Invalid priority: {priority}", 400
+
+    lakebase.run_write(
+        "UPDATE tickets SET priority = %s WHERE ticket_id = %s",
+        (priority, ticket_id),
     )
     return redirect(url_for("view_ticket", ticket_id=ticket_id))
 

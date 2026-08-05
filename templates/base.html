@@ -12,6 +12,8 @@
     <div class="layout">
         <nav class="sidebar">
             <a class="new-ticket-btn" href="{{ url_for('new_ticket_form') }}">+ New ticket</a>
+
+            <div class="nav-label">Status</div>
             <div class="nav-section">
                 <a href="{{ url_for('index') }}" class="nav-link {% if current_view == 'all' %}active{% endif %}">
                     <span>All tickets</span>
@@ -24,9 +26,50 @@
                 </a>
                 {% endfor %}
             </div>
+
+            <div class="nav-label">Priority</div>
+            <div class="nav-section">
+                <a href="{{ url_for('index') }}" class="nav-link {% if current_priority == 'all' %}active{% endif %}">
+                    <span>All priorities</span>
+                </a>
+                {% for p in priorities %}
+                <a href="{{ url_for('index', priority=p) }}" class="nav-link {% if current_priority == p %}active{% endif %}">
+                    <span><span class="dot dot-priority-{{ p }}"></span>{{ p | capitalize }}</span>
+                    <span class="count">{{ priority_counts[p] }}</span>
+                </a>
+                {% endfor %}
+            </div>
         </nav>
+
         <main class="content">
-            {% block content %}{% endblock %}
+            <div class="content-grid">
+                <div class="main-col">
+                    {% block content %}{% endblock %}
+                </div>
+                <aside class="side-col">
+                    <div class="panel">
+                        <h3>Priority breakdown</h3>
+                        {% for p in priorities %}
+                        <div class="bar-row">
+                            <span class="bar-label"><span class="dot dot-priority-{{ p }}"></span>{{ p | capitalize }}</span>
+                            <span class="bar-count">{{ priority_counts[p] }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="panel">
+                        <h3>Recent activity</h3>
+                        {% for m in recent_activity %}
+                        <div class="activity-item">
+                            <a href="{{ url_for('view_ticket', ticket_id=m.ticket_id) }}">{{ m.title }}</a>
+                            <div class="activity-meta">{{ m.author }} &middot; {{ m.created_at }}</div>
+                        </div>
+                        {% else %}
+                        <p class="description">No activity yet.</p>
+                        {% endfor %}
+                    </div>
+                </aside>
+            </div>
         </main>
     </div>
 </body>

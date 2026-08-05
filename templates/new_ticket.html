@@ -13,6 +13,13 @@
         <label for="description">Description</label>
         <textarea id="description" name="description" rows="4" placeholder="Describe the issue..."></textarea>
 
+        <label for="priority">Priority</label>
+        <select id="priority" name="priority">
+            {% for p in priorities %}
+            <option value="{{ p }}" {% if p == 'medium' %}selected{% endif %}>{{ p | capitalize }}</option>
+            {% endfor %}
+        </select>
+
         <label for="email">Your email</label>
         <input type="email" id="email" name="email" placeholder="you@example.com" required>
 
