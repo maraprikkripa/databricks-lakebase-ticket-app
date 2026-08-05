@@ -138,6 +138,15 @@ def get_category_counts():
     return counts
 
 
+def get_environment_counts():
+    """Return ticket counts per environment, for the sidebar filter."""
+    rows = lakebase.run_query("SELECT environment, COUNT(*) AS n FROM tickets GROUP BY environment")
+    counts = {e: 0 for e in VALID_ENVIRONMENTS}
+    for r in rows:
+        counts[r["environment"]] = r["n"]
+    return counts
+
+
 def get_recent_activity(limit=5):
     """Return the most recent messages across all tickets, for the right panel."""
     return lakebase.run_query(
@@ -198,6 +207,7 @@ def common_context():
         "counts": get_status_counts(),
         "priority_counts": get_priority_counts(),
         "category_counts": get_category_counts(),
+        "environment_counts": get_environment_counts(),
         "recent_activity": get_recent_activity(),
         "avg_resolution_hours": get_avg_resolution_hours(),
         "top_category": get_top_category(),
@@ -206,7 +216,7 @@ def common_context():
 
 @app.route("/")
 def index():
-    """List tickets, optionally filtered by status, priority, and/or category."""
+    """List tickets, optionally filtered by status, priority, category, and/or environment."""
     status_filter = request.args.get("status")
     if status_filter not in VALID_STATUSES:
         status_filter = None
@@ -219,6 +229,10 @@ def index():
     if category_filter not in VALID_CATEGORIES:
         category_filter = None
 
+    environment_filter = request.args.get("environment")
+    if environment_filter not in VALID_ENVIRONMENTS:
+        environment_filter = None
+
     where_clauses = []
     params = []
     if status_filter:
@@ -230,6 +244,9 @@ def index():
     if category_filter:
         where_clauses.append("category = %s")
         params.append(category_filter)
+    if environment_filter:
+        where_clauses.append("environment = %s")
+        params.append(environment_filter)
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
     tickets = lakebase.run_query(
@@ -244,6 +261,7 @@ def index():
         current_view=status_filter or "all",
         current_priority=priority_filter or "all",
         current_category=category_filter or "all",
+        current_environment=environment_filter or "all",
         **common_context(),
     )
 
@@ -256,6 +274,7 @@ def new_ticket_form():
         current_view=None,
         current_priority=None,
         current_category=None,
+        current_environment=None,
         **common_context(),
     )
 
@@ -270,6 +289,7 @@ def analytics():
         current_view=None,
         current_priority=None,
         current_category=None,
+        current_environment=None,
         chart_labels=chart_labels,
         chart_values=chart_values,
         category_labels=[c.replace("_", " ").title() for c in VALID_CATEGORIES],
@@ -304,6 +324,7 @@ def view_ticket(ticket_id):
         current_view=None,
         current_priority=None,
         current_category=None,
+        current_environment=None,
         **common_context(),
     )
 

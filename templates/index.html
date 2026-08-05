@@ -3,43 +3,44 @@
 {% block content %}
 
 <div class="stats-row">
-    <div class="stat-card">
+    <a class="stat-card {% if current_view == 'all' %}stat-active{% endif %}" href="{{ url_for('index') }}">
         <span class="stat-icon total">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </span>
         <div class="stat-value">{{ counts.total }}</div>
         <div class="stat-label">Total</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a class="stat-card {% if current_view == 'open' %}stat-active{% endif %}" href="{{ url_for('index', status='open') }}">
         <span class="stat-icon open">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l3-7h10l3 7"/><path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6"/><path d="M4 12h5l1 2h4l1-2h5"/></svg>
         </span>
         <div class="stat-value">{{ counts.open }}</div>
         <div class="stat-label">Open</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a class="stat-card {% if current_view == 'in_progress' %}stat-active{% endif %}" href="{{ url_for('index', status='in_progress') }}">
         <span class="stat-icon in_progress">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         </span>
         <div class="stat-value">{{ counts.in_progress }}</div>
         <div class="stat-label">In progress</div>
-    </div>
-    <div class="stat-card">
+    </a>
+    <a class="stat-card {% if current_view == 'resolved' %}stat-active{% endif %}" href="{{ url_for('index', status='resolved') }}">
         <span class="stat-icon resolved">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>
         </span>
         <div class="stat-value">{{ counts.resolved }}</div>
         <div class="stat-label">Resolved</div>
-    </div>
+    </a>
 </div>
 
 <h1>Tickets</h1>
-{% if current_view != 'all' or current_priority != 'all' or current_category != 'all' %}
+{% if current_view != 'all' or current_priority != 'all' or current_category != 'all' or current_environment != 'all' %}
 <p class="description">
     Filtered by:
     {%- if current_view != 'all' %} status = {{ current_view }}{% endif -%}
     {%- if current_priority != 'all' %}, priority = {{ current_priority }}{% endif -%}
     {%- if current_category != 'all' %}, category = {{ current_category.replace('_', ' ') }}{% endif -%}
+    {%- if current_environment != 'all' %}, environment = {{ current_environment }}{% endif -%}
     &nbsp;&middot;&nbsp;<a href="{{ url_for('index') }}">clear</a>
 </p>
 {% endif %}

@@ -7,7 +7,17 @@
 </head>
 <body>
     <header class="topbar">
-        <span class="brand">Support Desk</span>
+        <div class="topbar-left">
+            <span class="brand">DataExpert</span>
+            <span class="brand-sub">Support Desk &middot; AWS Environment</span>
+        </div>
+        <div class="tech-badges">
+            <span class="tech-badge tech-aws">AWS</span>
+            <span class="tech-badge tech-databricks">Databricks</span>
+            <span class="tech-badge tech-lakebase">Lakebase</span>
+            <span class="tech-badge tech-apps">Databricks Apps</span>
+            <span class="tech-badge tech-lakehouse">Lakehouse</span>
+        </div>
     </header>
     <div class="layout">
         <nav class="sidebar">
@@ -19,20 +29,6 @@
                     Analytics
                 </span>
             </a>
-
-            <div class="nav-label">Status</div>
-            <div class="nav-section">
-                <a href="{{ url_for('index') }}" class="nav-link {% if current_view == 'all' %}active{% endif %}">
-                    <span>All tickets</span>
-                    <span class="count">{{ counts.total }}</span>
-                </a>
-                {% for s in statuses %}
-                <a href="{{ url_for('index', status=s) }}" class="nav-link {% if current_view == s %}active{% endif %}">
-                    <span><span class="dot dot-{{ s }}"></span>{{ s.replace('_', ' ') | capitalize }}</span>
-                    <span class="count">{{ counts[s] }}</span>
-                </a>
-                {% endfor %}
-            </div>
 
             <div class="nav-label">Priority</div>
             <div class="nav-section">
@@ -50,6 +46,16 @@
                 <a href="{{ url_for('index', category=c) }}" class="nav-link {% if current_category == c %}active{% endif %}">
                     <span>{{ c.replace('_', ' ') | title }}</span>
                     <span class="count">{{ category_counts[c] }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <div class="nav-label">Environment</div>
+            <div class="nav-section">
+                {% for e in environments %}
+                <a href="{{ url_for('index', environment=e) }}" class="nav-link {% if current_environment == e %}active{% endif %}">
+                    <span><span class="dot dot-env-{{ e }}"></span>{{ e | capitalize }}</span>
+                    <span class="count">{{ environment_counts[e] }}</span>
                 </a>
                 {% endfor %}
             </div>

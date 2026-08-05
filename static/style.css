@@ -37,21 +37,40 @@ a:hover { text-decoration: underline; }
 /* Layout: header + sidebar + content */
 
 .topbar {
-    height: 56px;
+    height: 64px;
     display: flex;
     align-items: center;
-    padding: 0 24px;
-    border-bottom: 1px solid var(--border);
+    justify-content: space-between;
+    padding: 0 28px;
+    background: linear-gradient(90deg, #0f172a, #1e293b);
+    color: #fff;
 }
 
-.brand {
-    font-weight: 700;
-    font-size: 1.05rem;
+.topbar-left { display: flex; flex-direction: column; }
+
+.brand { font-weight: 700; font-size: 1.15rem; color: #fff; }
+.brand-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+
+.tech-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.tech-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
 }
+.tech-aws { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); }
+.tech-databricks { color: #fb7185; border-color: rgba(251, 113, 133, 0.35); }
+.tech-lakebase { color: #60a5fa; border-color: rgba(96, 165, 250, 0.35); }
+.tech-apps { color: #34d399; border-color: rgba(52, 211, 153, 0.35); }
+.tech-lakehouse { color: #c084fc; border-color: rgba(192, 132, 252, 0.35); }
 
 .layout {
     display: flex;
-    min-height: calc(100vh - 57px);
+    min-height: calc(100vh - 64px);
 }
 
 .sidebar {
@@ -169,10 +188,16 @@ a:hover { text-decoration: underline; }
 .stats-row-3 { grid-template-columns: repeat(3, 1fr); }
 .stat-card {
     position: relative;
+    display: block;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 14px 16px;
+    color: inherit !important;
+    text-decoration: none !important;
+    transition: border-color 0.15s, background 0.15s;
 }
+.stat-card:hover { border-color: var(--accent); }
+.stat-card.stat-active { border-color: var(--accent); background: var(--accent-bg); }
 .stat-value { font-size: 1.5rem; font-weight: 700; }
 .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
 
@@ -261,6 +286,9 @@ th {
 .dot-priority-low { background: #9ca3af; }
 .dot-priority-medium { background: #d97706; }
 .dot-priority-high { background: #dc2626; }
+.dot-env-dev { background: #9ca3af; }
+.dot-env-staging { background: #2563eb; }
+.dot-env-production { background: #7c3aed; }
 
 /* Cards / forms */
 
