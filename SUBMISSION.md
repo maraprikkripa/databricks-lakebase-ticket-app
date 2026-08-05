@@ -117,24 +117,32 @@ The status update correctly stamped `resolved_at`, and both rows persisted exact
 
 ### 4c. Verify every ticket has at least 2 messages (aggregate check) — run this LAST, after 4a/4b
 
-Because 4a adds a new ticket, re-run this check afterward so it covers your demo data too, not just the original seed data:
+Because creating demo tickets adds new rows, this check has to be re-run *after* all demo/testing activity, not just against the original seed data — otherwise a freshly created ticket with only 1 message would slip through.
 
 ```sql
 SELECT ticket_id, COUNT(*) FROM ticket_messages GROUP BY 1 HAVING COUNT(*) < 2 ORDER BY 1;
 ```
 
-**Expected result: 0 rows.** I verified this directly against Lakebase before you add your own demo ticket — at that point all 29 existing tickets had exactly 2 messages each:
+**Result at submission time: 0 rows**, verified directly against Lakebase. Two demo tickets created while testing this workflow (`Data mismatch`, id 34, and `Message persistence demo`, id 35) had temporarily fallen under the 2-message minimum — a second message was added to each so every ticket in the database, including demo ones, now satisfies the rule:
 
 ```
-ticket_id | title                              | msg_count
-1         | Cannot log in to dashboard          | 2
-2         | Export button not working           | 2
-3         | Feature request: dark mode          | 2
-7         | Nightly IDF_KO_SALES_FACT job failed | 2
-8         | dbt run failing on stg_customers model | 2
+Before fix:
+  ticket_id 34 'Data mismatch'             -> 0 messages
+  ticket_id 35 'Message persistence demo'  -> 1 message
+
+After adding the missing messages:
+  SELECT ticket_id, COUNT(*) FROM ticket_messages GROUP BY 1 HAVING COUNT(*) < 2 ORDER BY 1;
+  -> 0 rows returned
 ```
 
-**Screenshot this query's empty result** (0 rows) yourself after finishing 4a — that's the actual required evidence, and it only holds if you added the second message in step 4a.5 above.
+**Screenshot this query's empty result (0 rows)** yourself as the final piece of evidence — run it last, after you've finished the 4a/4b demo steps and confirmed (via `SELECT COUNT(*) FROM ticket_messages WHERE ticket_id = <your demo ticket id>`) that your own demo ticket has 2 messages too.
+
+### Note on grader access
+
+If the app URL is workspace-restricted and an external grader can't open it directly, a short screen recording (10-15 seconds) of the create-ticket → add-message → refresh flow is good extra corroboration alongside the screenshots above. Quick options with no extra install:
+- **Windows:** `Win + Alt + R` (Xbox Game Bar) starts/stops a screen recording of the active window, saved as an `.mp4`
+- **Windows:** Snipping Tool (newer versions) has a screen-recording mode too
+- Either works fine for a quick clip showing the message/status appearing, then a page refresh confirming it's still there.
 
 ## 5. Reflection
 
