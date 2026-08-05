@@ -38,6 +38,9 @@ def ensure_tables():
         )
         """
     )
+    # Added after the initial schema - IF NOT EXISTS keeps this safe to re-run
+    # against a table that was created before this column existed.
+    lakebase.run_write("ALTER TABLE tickets ADD COLUMN IF NOT EXISTS description TEXT")
     lakebase.run_write(
         """
         CREATE TABLE IF NOT EXISTS ticket_messages (
@@ -84,7 +87,7 @@ def index():
 def view_ticket(ticket_id):
     """View a single ticket and its messages."""
     tickets = lakebase.run_query(
-        "SELECT ticket_id, title, status, created_by, created_at "
+        "SELECT ticket_id, title, description, status, created_by, created_at "
         "FROM tickets WHERE ticket_id = %s",
         (ticket_id,),
     )
@@ -105,13 +108,30 @@ def view_ticket(ticket_id):
 def create_ticket():
     """Create a new ticket."""
     title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    email = request.form.get("email", "").strip()
+
     if not title:
         return "Title is required", 400
+    if not email:
+        return "Email is required", 400
 
     lakebase.run_write(
-        "INSERT INTO tickets (title, status, created_by) VALUES (%s, %s, %s)",
-        (title, "open", _current_user_email()),
+        "INSERT INTO tickets (title, description, status, created_by) "
+        "VALUES (%s, %s, %s, %s)",
+        (title, description or None, "open", email),
     )
+    return redirect(url_for("index"))
+
+
+@app.route("/tickets/<int:ticket_id>/delete", methods=["POST"])
+def delete_ticket(ticket_id):
+    """Delete a ticket and all of its messages."""
+    with lakebase.get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM ticket_messages WHERE ticket_id = %s", (ticket_id,))
+            cur.execute("DELETE FROM tickets WHERE ticket_id = %s", (ticket_id,))
+            conn.commit()
     return redirect(url_for("index"))
 
 
