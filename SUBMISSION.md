@@ -89,40 +89,41 @@ Demo ticket removed (so it wouldn't clutter the real data for screenshots).
 
 The status update correctly stamped `resolved_at`, and both rows persisted exactly as inserted. The steps below turn this into the specific before/after browser screenshots requested.
 
-### 4a. Demonstrate adding a message from the app UI (before → after → query)
+### 4a. Demonstrate adding a message from the app UI (before → after → query) — and keep the ≥2-messages rule true
 
 1. In the app, click **+ New ticket**. Create one titled something identifiable, e.g. `Message persistence demo`.
 2. Open that ticket's detail page and **screenshot it now** — this is your "before" shot: title/description visible, **Messages** section says "No messages yet."
 3. In the **Add a message** box, type something identifiable (e.g. `First message - persistence check`) and submit.
 4. The page reloads with your message now shown under **Messages** — **screenshot this** as your "after" shot.
-5. In the Lakebase SQL editor, run:
+5. **Add a second message** (e.g. `Second message - confirming the >=2 rule`) and submit. This matters: a demo ticket with only one message would fail the "every ticket has ≥2 messages" rule and break the aggregate check in 4c — so every ticket you create needs at least 2 messages before you're done.
+6. In the Lakebase SQL editor, run:
    ```sql
    SELECT * FROM ticket_messages
    WHERE ticket_id = (SELECT ticket_id FROM tickets WHERE title = 'Message persistence demo');
    ```
-6. **Screenshot the query result** — one row, matching what you saw in the app. Pair all three screenshots (before / after / query) together.
+7. **Screenshot the query result** — two rows, matching what you saw in the app. Pair the screenshots (before / after first message / query showing 2 rows) together.
 
 ### 4b. Demonstrate updating a ticket's status (app UI + Lakebase query, including `resolved_at`)
 
-1. Pick any ticket currently **not** resolved (e.g. one showing `open` or `in_progress`).
-2. **Screenshot the detail page** as "before" — note the status badge.
-3. In the **Update status** dropdown, select `resolved` and submit.
-4. **Screenshot again** as "after" — the badge now shows `resolved`.
+1. Pick any ticket currently **not** resolved — the demo ticket from 4a works fine, or any other showing `open`/`in_progress`.
+2. **Screenshot the detail page** as "before" — note the status badge, and that `resolved_at` isn't shown (it's `NULL`).
+3. In the **Update status** dropdown, select `resolved` and click the **Update status** button next to it (that's the submit button for that form).
+4. **Screenshot again** as "after" — the badge now shows `resolved`, and the page now shows a "Resolved at ..." timestamp under the title.
 5. In the Lakebase SQL editor, run:
    ```sql
    SELECT ticket_id, title, status, resolved_at FROM tickets WHERE ticket_id = <that ticket's id>;
    ```
-6. **Screenshot the result** — `status = 'resolved'` and `resolved_at` now has a real timestamp (it was `NULL` before this update, per the app's `UPDATE ... resolved_at = CASE WHEN status = 'resolved' THEN now() ELSE NULL END` logic). This directly proves the resolved_at behavior, not just the status column.
+6. **This query result is the required screenshot** — it must show `status = 'resolved'` **and** `resolved_at IS NOT NULL` (a real timestamp, not blank) side by side in the same row. That's what proves persistence in the database itself, not just a UI-only change — the app's `UPDATE ... resolved_at = CASE WHEN status = 'resolved' THEN now() ELSE NULL END` logic is what stamps it.
 
-### 4c. Verify every ticket has at least 2 messages (aggregate check)
+### 4c. Verify every ticket has at least 2 messages (aggregate check) — run this LAST, after 4a/4b
 
-Ran directly against Lakebase:
+Because 4a adds a new ticket, re-run this check afterward so it covers your demo data too, not just the original seed data:
 
 ```sql
 SELECT ticket_id, COUNT(*) FROM ticket_messages GROUP BY 1 HAVING COUNT(*) < 2 ORDER BY 1;
 ```
 
-**Result: 0 rows returned** — no ticket has fewer than 2 messages. Sample confirmation across the required tickets and beyond:
+**Expected result: 0 rows.** I verified this directly against Lakebase before you add your own demo ticket — at that point all 29 existing tickets had exactly 2 messages each:
 
 ```
 ticket_id | title                              | msg_count
@@ -133,7 +134,7 @@ ticket_id | title                              | msg_count
 8         | dbt run failing on stg_customers model | 2
 ```
 
-(All 29 tickets in the database have exactly 2 messages each.) Run the `HAVING COUNT(*) < 2` query yourself in the SQL editor for your own screenshot — an empty result set is the proof.
+**Screenshot this query's empty result** (0 rows) yourself after finishing 4a — that's the actual required evidence, and it only holds if you added the second message in step 4a.5 above.
 
 ## 5. Reflection
 
