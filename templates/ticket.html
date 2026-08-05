@@ -7,7 +7,13 @@
 {% if ticket.description %}
 <p class="description">{{ ticket.description }}</p>
 {% endif %}
-<p class="description">Created by {{ ticket.created_by }} on {{ ticket.created_at }}</p>
+<p class="description">
+    Created by {{ ticket.created_by }} on {{ ticket.created_at }}
+    &middot; Environment: <span class="badge badge-env-{{ ticket.environment }}">{{ ticket.environment }}</span>
+    {% if ticket.resolved_at %}
+    &middot; Resolved at {{ ticket.resolved_at }}
+    {% endif %}
+</p>
 
 <div class="status-row">
     <span class="badge badge-{{ ticket.status }}">{{ ticket.status }}</span>
@@ -30,6 +36,18 @@
             {% endfor %}
         </select>
         <button type="submit">Update priority</button>
+    </form>
+</div>
+
+<div class="status-row">
+    <span class="badge badge-category-{{ ticket.category }}">{{ ticket.category.replace('_', ' ') }}</span>
+    <form method="post" action="{{ url_for('update_category', ticket_id=ticket.ticket_id) }}">
+        <select name="category">
+            {% for c in categories %}
+            <option value="{{ c }}" {% if c == ticket.category %}selected{% endif %}>{{ c.replace('_', ' ') | title }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Update category</button>
     </form>
 </div>
 

@@ -13,12 +13,32 @@
         <label for="description">Description</label>
         <textarea id="description" name="description" rows="4" placeholder="Describe the issue..."></textarea>
 
-        <label for="priority">Priority</label>
-        <select id="priority" name="priority">
-            {% for p in priorities %}
-            <option value="{{ p }}" {% if p == 'medium' %}selected{% endif %}>{{ p | capitalize }}</option>
-            {% endfor %}
-        </select>
+        <div class="form-row">
+            <div>
+                <label for="priority">Priority</label>
+                <select id="priority" name="priority">
+                    {% for p in priorities %}
+                    <option value="{{ p }}" {% if p == 'medium' %}selected{% endif %}>{{ p | capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    {% for c in categories %}
+                    <option value="{{ c }}" {% if c == 'other' %}selected{% endif %}>{{ c.replace('_', ' ') | title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="environment">Environment</label>
+                <select id="environment" name="environment">
+                    {% for e in environments %}
+                    <option value="{{ e }}" {% if e == 'production' %}selected{% endif %}>{{ e | capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
 
         <label for="email">Your email</label>
         <input type="email" id="email" name="email" placeholder="you@example.com" required>

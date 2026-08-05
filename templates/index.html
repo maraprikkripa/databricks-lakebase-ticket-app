@@ -33,13 +33,20 @@
     </div>
 </div>
 
-<h1>
-    {% if current_view == 'all' %}All Tickets{% else %}{{ current_view.replace('_', ' ') | capitalize }} Tickets{% endif %}
-</h1>
+<h1>Tickets</h1>
+{% if current_view != 'all' or current_priority != 'all' or current_category != 'all' %}
+<p class="description">
+    Filtered by:
+    {%- if current_view != 'all' %} status = {{ current_view }}{% endif -%}
+    {%- if current_priority != 'all' %}, priority = {{ current_priority }}{% endif -%}
+    {%- if current_category != 'all' %}, category = {{ current_category.replace('_', ' ') }}{% endif -%}
+    &nbsp;&middot;&nbsp;<a href="{{ url_for('index') }}">clear</a>
+</p>
+{% endif %}
 
 <table>
     <thead>
-        <tr><th>Title</th><th>Status</th><th>Priority</th><th>Created By</th><th>Created At</th></tr>
+        <tr><th>Title</th><th>Status</th><th>Priority</th><th>Category</th><th>Created By</th><th>Created At</th></tr>
     </thead>
     <tbody>
         {% for t in tickets %}
@@ -47,11 +54,12 @@
             <td><a href="{{ url_for('view_ticket', ticket_id=t.ticket_id) }}">{{ t.title }}</a></td>
             <td><span class="badge badge-{{ t.status }}">{{ t.status }}</span></td>
             <td><span class="badge badge-priority-{{ t.priority }}">{{ t.priority }}</span></td>
+            <td><span class="badge badge-category-{{ t.category }}">{{ t.category.replace('_', ' ') }}</span></td>
             <td>{{ t.created_by }}</td>
             <td>{{ t.created_at }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="5">No tickets found.</td></tr>
+        <tr><td colspan="6">No tickets found.</td></tr>
         {% endfor %}
     </tbody>
 </table>

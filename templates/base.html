@@ -13,6 +13,13 @@
         <nav class="sidebar">
             <a class="new-ticket-btn" href="{{ url_for('new_ticket_form') }}">+ New ticket</a>
 
+            <a href="{{ url_for('analytics') }}" class="nav-link analytics-link {% if request.endpoint == 'analytics' %}active{% endif %}">
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V10M12 19V5M20 19v-7"/></svg>
+                    Analytics
+                </span>
+            </a>
+
             <div class="nav-label">Status</div>
             <div class="nav-section">
                 <a href="{{ url_for('index') }}" class="nav-link {% if current_view == 'all' %}active{% endif %}">
@@ -29,13 +36,20 @@
 
             <div class="nav-label">Priority</div>
             <div class="nav-section">
-                <a href="{{ url_for('index') }}" class="nav-link {% if current_priority == 'all' %}active{% endif %}">
-                    <span>All priorities</span>
-                </a>
                 {% for p in priorities %}
                 <a href="{{ url_for('index', priority=p) }}" class="nav-link {% if current_priority == p %}active{% endif %}">
                     <span><span class="dot dot-priority-{{ p }}"></span>{{ p | capitalize }}</span>
                     <span class="count">{{ priority_counts[p] }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            <div class="nav-label">Category</div>
+            <div class="nav-section">
+                {% for c in categories %}
+                <a href="{{ url_for('index', category=c) }}" class="nav-link {% if current_category == c %}active{% endif %}">
+                    <span>{{ c.replace('_', ' ') | title }}</span>
+                    <span class="count">{{ category_counts[c] }}</span>
                 </a>
                 {% endfor %}
             </div>
@@ -48,13 +62,18 @@
                 </div>
                 <aside class="side-col">
                     <div class="panel">
-                        <h3>Priority breakdown</h3>
-                        {% for p in priorities %}
+                        <h3>At a glance</h3>
                         <div class="bar-row">
-                            <span class="bar-label"><span class="dot dot-priority-{{ p }}"></span>{{ p | capitalize }}</span>
-                            <span class="bar-count">{{ priority_counts[p] }}</span>
+                            <span class="bar-label">Avg. resolution time</span>
+                            <span class="bar-count">
+                                {% if avg_resolution_hours is not none %}{{ avg_resolution_hours }}h{% else %}&mdash;{% endif %}
+                            </span>
                         </div>
-                        {% endfor %}
+                        <div class="bar-row">
+                            <span class="bar-label">Top category</span>
+                            <span class="bar-count">{{ top_category or "—" }}</span>
+                        </div>
+                        <a class="panel-link" href="{{ url_for('analytics') }}">View full analytics &rarr;</a>
                     </div>
 
                     <div class="panel">
